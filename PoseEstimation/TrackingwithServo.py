@@ -16,7 +16,7 @@ def initialize_serial(port, baudrate):
             time.sleep(5)
             continue
 
-arduino = initialize_serial('COM13', 9600)
+arduino = initialize_serial('COM10', 9600)
 
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose()
@@ -41,11 +41,9 @@ while True:
         shoulder_right = [landmarks[12].x * img.shape[1], landmarks[12].y * img.shape[0]]
         center_x = int((shoulder_left[0] + shoulder_right[0]) / 2)
         center_y = int((shoulder_left[1] + shoulder_right[1]) / 2)
-        center_z = (shoulder_left[2] + shoulder_right[2]) / 2
 
         cv2.circle(img, (center_x, center_y), 5, (0, 255, 0), -1)
         cv2.putText(img, f"X Coordinate: {center_x}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-        cv2.putText(img, f"Z Coordinate: {center_z}", (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
         # Send the x-coordinate to the Arduino  
         try:
