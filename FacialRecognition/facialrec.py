@@ -13,13 +13,22 @@ cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
 counter = 0
-reference_img_path = r"C:\Users\nikhi\OneDrive\Documents\Github\Pose-Estimation-Autonomous-Turret\FacialRecognition\Nikhil.jpg"
-reference_img = cv2.imread(reference_img_path)
 
-# Check if the image was loaded correctly
-if reference_img is None:
-    print(f"Error: Could not load the image at path {reference_img_path}")
-    exit()
+# Load multiple reference images
+reference_img_paths = [
+    r"C:\Users\nikhi\OneDrive\Documents\Github\Pose-Estimation-Autonomous-Turret\FacialRecognition\Nikhil.jpg",   # Nikhil
+    r"C:\Users\nikhi\OneDrive\Documents\Github\Pose-Estimation-Autonomous-Turret\FacialRecognition\Nikhil2.jpg",  # Nikhil 2
+    r"C:\Users\nikhi\OneDrive\Documents\Github\Pose-Estimation-Autonomous-Turret\FacialRecognition\Nikhil3.jpg",  # Nikhil 3
+    r"C:\Users\nikhi\OneDrive\Documents\Github\Pose-Estimation-Autonomous-Turret\FacialRecognition\Nikhil4.jpg",  # Nikhil 4
+    r"C:\Users\nikhi\OneDrive\Documents\Github\Pose-Estimation-Autonomous-Turret\FacialRecognition\Nikhil5.jpg",  # Nikhil 5
+]
+reference_imgs = [cv2.imread(path) for path in reference_img_paths]
+
+# Check if all images were loaded correctly
+for path, img in zip(reference_img_paths, reference_imgs):
+    if img is None:
+        print(f"Error: Could not load the image at path {path}")
+        exit()
 
 face_match = False
 lock = threading.Lock()
@@ -33,9 +42,14 @@ def check_face():
         try:
             (x, y, w, h) = face_coords
             face_img = frame[y:y+h, x:x+w]
-            result = DeepFace.verify(face_img, reference_img.copy(), model_name="VGG-Face", detector_backend="opencv")
+            match_found = False
+            for ref_img in reference_imgs:
+                result = DeepFace.verify(face_img, ref_img.copy(), model_name="VGG-Face", detector_backend="opencv")
+                if result['verified']:
+                    match_found = True
+                    break
             with lock:
-                face_match = result['verified']
+                face_match = match_found
             print(f"Verification result: {result}")
         except Exception as e:
             print(f"Error in face verification: {e}")
