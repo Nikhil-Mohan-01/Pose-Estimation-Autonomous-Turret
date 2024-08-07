@@ -3,16 +3,21 @@ import threading
 import cv2
 from deepface import DeepFace
 from queue import Queue
+import mediapipe as mp
+import numpy as np
+import time
 
 # Set the TensorFlow environment variable to turn off oneDNN custom operations
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
 counter = 0
+face_match = False
+lock = threading.Lock()
+task_queue = Queue()
 
 # Load multiple reference images
 reference_img_paths = [
@@ -30,9 +35,6 @@ for path, img in zip(reference_img_paths, reference_imgs):
         print(f"Error: Could not load the image at path {path}")
         exit()
 
-face_match = False
-lock = threading.Lock()
-task_queue = Queue()
 face_detector = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
 def check_face():
@@ -60,29 +62,50 @@ def check_face():
 # Start a single worker thread
 threading.Thread(target=check_face, daemon=True).start()
 
+# Initialize MediaPipe Pose
+mp_pose = mp.solutions.pose
+pose = mp_pose.Pose()
+mp_drawing = mp.solutions.drawing_utils
+
+pTime = 0
+
 while True:
     ret, frame = cap.read()
-
-    if ret:
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        faces = face_detector.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30), flags=cv2.CASCADE_SCALE_IMAGE)
-
-        for (x, y, w, h) in faces:
-            if counter % 30 == 0:
-                task_queue.put((frame.copy(), (x, y, w, h)))
-            counter += 1
-
-            with lock:
-                color = (0, 255, 0) if face_match else (0, 0, 255)
-                cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
-
-            cv2.putText(frame, "MATCH!" if face_match else "NO MATCH!", (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 2, color, 3)
-
-        cv2.imshow('video', frame)
-
-    key = cv2.waitKey(1)
-    if key == ord('q'):
+    if not ret:
         break
 
-cv2.destroyAllWindows()
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    faces = face_detector.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30), flags=cv2.CASCADE_SCALE_IMAGE)
+
+    for (x, y, w, h) in faces:
+        if counter % 30 == 0:
+            task_queue.put((frame.copy(), (x, y, w, h)))
+        counter += 1
+
+        with lock:
+            color = (0, 255, 0) if face_match else (0, 0, 255)
+            cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
+
+        cv2.putText(frame, "MATCH!" if face_match else "NO MATCH!", (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 2, color, 3)
+
+    # Convert the image to RGB for MediaPipe
+    img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    result = pose.process(img_rgb)
+
+    if result.pose_landmarks:
+        mp_drawing.draw_landmarks(frame, result.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+
+    cTime = time.time()
+    fps = 1 / (cTime - pTime)
+    pTime = cTime
+    
+    # Add FPS to the image
+    cv2.putText(frame, str(int(fps)), (20, 50), cv2.FONT_HERSHEY_COMPLEX, 2, (0, 255, 0), 2)
+    
+    cv2.imshow('video', frame)
+
+    if cv2.waitKey(1) == ord('q'):
+        break
+
 cap.release()
+cv2.destroyAllWindows()
