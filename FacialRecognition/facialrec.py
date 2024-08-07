@@ -6,24 +6,9 @@ from queue import Queue
 import mediapipe as mp
 import numpy as np
 import time
-import serial
 
 # Set the TensorFlow environment variable to turn off oneDNN custom operations
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
-
-def initialize_serial(port, baudrate):
-    while True:
-        try:
-            arduino = serial.Serial(port, baudrate, timeout=1)
-            time.sleep(2)
-            print("Serial connection established on", port)
-            return arduino
-        except serial.SerialException as e:
-            print(f"Failed to connect on {port}: {e}")
-            time.sleep(5)
-            continue
-
-arduino = initialize_serial('COM9', 9600)    # Change COM9 to the actual communication port once the arduino is connected. 
 
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
@@ -61,13 +46,10 @@ def check_face():
             face_img = frame[y:y+h, x:x+w]
             match_found = False
             for ref_img in reference_imgs:
-                try:
-                    result = DeepFace.verify(face_img, ref_img.copy(), model_name="VGG-Face", detector_backend="opencv")
-                    if result['verified']:
-                        match_found = True
-                        break
-                except Exception as e:
-                    print(f"Error verifying with reference image: {e}")
+                result = DeepFace.verify(face_img, ref_img.copy(), model_name="VGG-Face", detector_backend="opencv")
+                if result['verified']:
+                    match_found = True
+                    break
             with lock:
                 face_match = match_found
             print(f"Verification result: {result}")
@@ -125,14 +107,27 @@ while True:
                 (lmList[11][2] + lmList[12][2]) // 2
             )
 
+            if previous_center is not None:
+                pixel_distance = np.linalg.norm(np.array(center) - np.array(previous_center))
+                current_time = time.time()
+                time_elapsed = current_time - previous_time
+                speed_pxs = pixel_distance / time_elapsed
+                speed_mps = speed_pxs * 0.01
+                
+                # Determine direction
+                if center[0] > previous_center[0]:
+                    direction = "Right"
+                elif center[0] < previous_center[0]:
+                    direction = "Left"
+                else: 
+                    direction = "Still"
+                
+                # Display speed and direction on frame
+                cv2.putText(frame, f"Speed: {speed_mps:.2f} m/s", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                cv2.putText(frame, f"Direction: {direction}", (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            
             previous_center = center
             previous_time = time.time()
-
-            # Send the face match status and center coordinates to the Arduino
-            try:
-                arduino.write(f"{face_match},{center[0]},{center[1]}\n".encode())
-            except serial.SerialException as e:
-                print(f"Failed to write to serial port: {e}")
 
     cTime = time.time()
     fps = 1 / (cTime - pTime)
@@ -148,4 +143,3 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
-arduino.close()
