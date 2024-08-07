@@ -67,6 +67,8 @@ mp_pose = mp.solutions.pose
 pose = mp_pose.Pose()
 mp_drawing = mp.solutions.drawing_utils
 
+previous_center = None
+previous_time = None
 pTime = 0
 
 while True:
@@ -94,6 +96,38 @@ while True:
 
     if result.pose_landmarks:
         mp_drawing.draw_landmarks(frame, result.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+
+        # Extract landmarks
+        lmList = [(i, lm.x * frame.shape[1], lm.y * frame.shape[0]) for i, lm in enumerate(result.pose_landmarks.landmark)]
+
+        if len(lmList) > 0:
+            # Calculate the midpoint between shoulders (landmarks 11 and 12)
+            center = (
+                (lmList[11][1] + lmList[12][1]) // 2,
+                (lmList[11][2] + lmList[12][2]) // 2
+            )
+
+            if previous_center is not None:
+                pixel_distance = np.linalg.norm(np.array(center) - np.array(previous_center))
+                current_time = time.time()
+                time_elapsed = current_time - previous_time
+                speed_pxs = pixel_distance / time_elapsed
+                speed_mps = speed_pxs * 0.01
+                
+                # Determine direction
+                if center[0] > previous_center[0]:
+                    direction = "Right"
+                elif center[0] < previous_center[0]:
+                    direction = "Left"
+                else: 
+                    direction = "Still"
+                
+                # Display speed and direction on frame
+                cv2.putText(frame, f"Speed: {speed_mps:.2f} m/s", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                cv2.putText(frame, f"Direction: {direction}", (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            
+            previous_center = center
+            previous_time = time.time()
 
     cTime = time.time()
     fps = 1 / (cTime - pTime)
