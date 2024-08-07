@@ -23,7 +23,7 @@ def initialize_serial(port, baudrate):
             time.sleep(5)
             continue
 
-arduino = initialize_serial('COM9', 9600)
+arduino = initialize_serial('COM9', 9600)    # Change COM9 to the actual communication port once the arduino is connected. 
 
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
