@@ -6,9 +6,24 @@ from queue import Queue
 import mediapipe as mp
 import numpy as np
 import time
+import serial
 
 # Set the TensorFlow environment variable to turn off oneDNN custom operations
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+
+def initialize_serial(port, baudrate):
+    while True:
+        try:
+            arduino = serial.Serial(port, baudrate, timeout=1)
+            time.sleep(2)
+            print("Serial connection established on", port)
+            return arduino
+        except serial.SerialException as e:
+            print(f"Failed to connect on {port}: {e}")
+            time.sleep(5)
+            continue
+
+arduino = initialize_serial('COM9', 9600)
 
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
@@ -90,6 +105,12 @@ while True:
 
         cv2.putText(frame, "MATCH!" if face_match else "NO MATCH!", (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 2, color, 3)
 
+        # Send the face match status to the Arduino
+        try:
+            arduino.write(f"{face_match}\n".encode())
+        except serial.SerialException as e:
+            print(f"Failed to write to serial port: {e}")
+
     # Convert the image to RGB for MediaPipe
     img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     result = pose.process(img_rgb)
@@ -126,6 +147,12 @@ while True:
                 cv2.putText(frame, f"Speed: {speed_mps:.2f} m/s", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
                 cv2.putText(frame, f"Direction: {direction}", (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             
+                # Send speed and direction to the Arduino
+                try:
+                    arduino.write(f"{speed_mps:.2f},{direction}\n".encode())
+                except serial.SerialException as e:
+                    print(f"Failed to write to serial port: {e}")
+
             previous_center = center
             previous_time = time.time()
 
@@ -143,3 +170,4 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
+arduino.close()
