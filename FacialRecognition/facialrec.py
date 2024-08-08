@@ -11,6 +11,7 @@ import serial
 # Set the TensorFlow environment variable to turn off oneDNN custom operations
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
+# Initialize the serial communication with Arduino
 def initialize_serial(port, baudrate):
     while True:
         try:
@@ -105,12 +106,6 @@ while True:
 
         cv2.putText(frame, "MATCH!" if face_match else "NO MATCH!", (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 2, color, 3)
 
-        # Send the face match status to the Arduino
-        try:
-            arduino.write(f"{face_match}\n".encode())
-        except serial.SerialException as e:
-            print(f"Failed to write to serial port: {e}")
-
     # Convert the image to RGB for MediaPipe
     img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     result = pose.process(img_rgb)
@@ -123,35 +118,15 @@ while True:
 
         if len(lmList) > 0:
             # Calculate the midpoint between shoulders (landmarks 11 and 12)
-            center = (
-                (lmList[11][1] + lmList[12][1]) // 2,
-                (lmList[11][2] + lmList[12][2]) // 2
-            )
+            center_x = int((lmList[11][1] + lmList[12][1]) / 2)
+            center_y = int((lmList[11][2] + lmList[12][2]) / 2)
+            center = (center_x, center_y)
 
-            if previous_center is not None:
-                pixel_distance = np.linalg.norm(np.array(center) - np.array(previous_center))
-                current_time = time.time()
-                time_elapsed = current_time - previous_time
-                speed_pxs = pixel_distance / time_elapsed
-                speed_mps = speed_pxs * 0.01
-                
-                # Determine direction
-                if center[0] > previous_center[0]:
-                    direction = "Right"
-                elif center[0] < previous_center[0]:
-                    direction = "Left"
-                else: 
-                    direction = "Still"
-                
-                # Display speed and direction on frame
-                cv2.putText(frame, f"Speed: {speed_mps:.2f} m/s", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                cv2.putText(frame, f"Direction: {direction}", (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            
-                # Send speed and direction to the Arduino
-                try:
-                    arduino.write(f"{speed_mps:.2f},{direction}\n".encode())
-                except serial.SerialException as e:
-                    print(f"Failed to write to serial port: {e}")
+            # Send the X and Y coordinates of the midpoint to the Arduino
+            try:
+                arduino.write(f"{center_x},{center_y}\n".encode())
+            except serial.SerialException as e:
+                print(f"Failed to write to serial port: {e}")
 
             previous_center = center
             previous_time = time.time()
@@ -170,4 +145,3 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
-arduino.close()
