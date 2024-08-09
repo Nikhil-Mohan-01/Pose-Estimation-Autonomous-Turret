@@ -14,16 +14,22 @@ void loop() {
   if (Serial.available() > 0) {
     // Read the incoming data as a string
     String data = Serial.readStringUntil('\n');
+    
+    // Split the string into X and Y coordinates
+    int commaIndex = data.indexOf(',');
+    String xCoordStr = data.substring(0, commaIndex);
+    String yCoordStr = data.substring(commaIndex + 1);
 
-    // Check if the data indicates a face match
-    if (data == "True") {
-      // Face match found, turn off the motor
-      digitalWrite(motorPin1, LOW);
-      digitalWrite(motorPin2, LOW);
-    } else {
-      // No face match, turn on the motor
+    int xCoord = xCoordStr.toInt();
+    int yCoord = yCoordStr.toInt();
+
+    // For demonstration, let's say we'll turn on the motor if the X or Y coordinate is greater than 320 (half the width of the frame)
+    if (xCoord > 320 || yCoord > 240) {
       digitalWrite(motorPin1, HIGH);
       digitalWrite(motorPin2, HIGH);
+    } else {
+      digitalWrite(motorPin1, LOW);
+      digitalWrite(motorPin2, LOW);
     }
   }
 }
