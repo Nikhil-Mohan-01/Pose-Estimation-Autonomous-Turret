@@ -37,11 +37,11 @@ task_queue = Queue()
 
 # Load multiple reference images
 reference_img_paths = [
-    r"C:\Users\nikhi\OneDrive\Documents\Github\Pose-Estimation-Autonomous-Turret\FacialRecognition\Nikhil.jpg",   # Nikhil
-    r"C:\Users\nikhi\OneDrive\Documents\Github\Pose-Estimation-Autonomous-Turret\FacialRecognition\Nikhil2.jpg",  # Nikhil 2
-    r"C:\Users\nikhi\OneDrive\Documents\Github\Pose-Estimation-Autonomous-Turret\FacialRecognition\Nikhil3.jpg",  # Nikhil 3
-    r"C:\Users\nikhi\OneDrive\Documents\Github\Pose-Estimation-Autonomous-Turret\FacialRecognition\Nikhil4.jpg",  # Nikhil 4
-    r"C:\Users\nikhi\OneDrive\Documents\Github\Pose-Estimation-Autonomous-Turret\FacialRecognition\Nikhil5.jpg",  # Nikhil 5
+    r"C:\Users\nikhi\OneDrive\Documents\Github\Pose-Estimation-Autonomous-Turret\FacialRecognition\FaceRecImages\Nikhil.jpg",   # Nikhil
+    r"C:\Users\nikhi\OneDrive\Documents\Github\Pose-Estimation-Autonomous-Turret\FacialRecognition\FaceRecImages\Nikhil2.jpg",  # Nikhil 2
+    r"C:\Users\nikhi\OneDrive\Documents\Github\Pose-Estimation-Autonomous-Turret\FacialRecognition\FaceRecImages\Nikhil3.jpg",  # Nikhil 3
+    r"C:\Users\nikhi\OneDrive\Documents\Github\Pose-Estimation-Autonomous-Turret\FacialRecognition\FaceRecImages\Nikhil4.jpg",  # Nikhil 4
+    r"C:\Users\nikhi\OneDrive\Documents\Github\Pose-Estimation-Autonomous-Turret\FacialRecognition\FaceRecImages\Nikhil5.jpg",  # Nikhil 5
 ]
 reference_imgs = [cv2.imread(path) for path in reference_img_paths]
 
